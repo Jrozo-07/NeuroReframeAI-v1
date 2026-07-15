@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroReframeAI - Clinical Cognitive Processor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Cabecera -->
+  <header>
+    <div class="brand">
+      <h1>NEURO_REFRAME_AI</h1>
+      <span>Clinical Suite</span>
+    </div>
+    <div class="status-container">
+      <div class="status-badge active" id="bciBadge">
+        <span class="status-indicator"></span>
+        Sincronización BCI Activa
+      </div>
+      <div class="status-badge" id="geminiBadge">
+        <span class="status-indicator" style="background-color: var(--accent-light);"></span>
+        Motor CoT Conectado
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido -->
+  <main>
+    
+    <!-- Panel Izquierdo: Telemetría y Formulario -->
+    <section class="card">
+      <h2>Telemetría Fisiológica (Simulación)</h2>
+      
+      <div class="bci-section">
+        <!-- Indicador de ritmo de escritura para el usuario -->
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem; text-align: center; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem;">
+          Ritmo de Escritura: <span id="valWpm" style="font-family: var(--font-mono); color: var(--text-primary); font-weight: 600;">0</span> WPM | Correcciones Recientes: <span id="valBackspace" style="font-family: var(--font-mono); color: var(--text-primary); font-weight: 600;">0</span>
+        </div>
+
+        <div class="bci-row">
+          <div class="bci-item" style="display: flex; align-items: center; gap: 8px;">
+            <div>
+              <div class="bci-label">Ritmo Cardíaco</div>
+              <div class="bci-value-group">
+                <span class="bci-number" id="valBpm">--</span>
+                <span class="bci-unit">BPM</span>
+              </div>
+            </div>
+            <!-- Corazón Visual con Latido Sincronizado -->
+            <div id="heartVisual" style="font-size: 1.4rem; margin-left: auto;">❤️</div>
+          </div>
+          
+          <div class="bci-item">
+            <div class="bci-label">Conductancia Galvánica</div>
+            <div class="bci-value-group">
+              <span class="bci-number" id="valConductancia">--</span>
+              <span class="bci-unit">uS</span>
+            </div>
+          </div>
+          
+          <div class="bci-item">
+            <div class="bci-label">Ondas Beta (Gama Alta)</div>
+            <div class="bci-value-group">
+              <span class="bci-number" id="valBeta">--</span>
+              <span class="bci-unit">Hz</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monitor Gráfico Discreto -->
+        <div class="bci-graph-container">
+          <canvas id="bciCanvas"></canvas>
+        </div>
+
+        <!-- Índice de Estrés Somático -->
+        <div class="stress-summary">
+          <span>Índice de Tensión Somática</span>
+          <div class="stress-bar-bg">
+            <div class="stress-bar-fill" id="stressBar"></div>
+          </div>
+          <span id="stressPercentage" style="font-family: var(--font-mono); font-weight: 500;">--%</span>
+        </div>
+      </div>
+
+      <h2>Entrada de Pensamiento Analítico</h2>
+      <form id="reframeForm" style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <div class="form-group">
+          <label for="thoughtInput">Escribe el pensamiento negativo o intrusivo para su descomposición:</label>
+          <textarea 
+            id="thoughtInput" 
+            placeholder="Escribe un pensamiento de al menos 10 caracteres..."
+            required></textarea>
+          <div class="form-info">
+            <span class="error-text" id="charError"></span>
+            <span id="charCount">0 caracteres (mínimo 10)</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="btnSubmit">
+          INICIAR REENCUADRE COGNITIVO
+        </button>
+      </form>
+    </section>
+
+    <!-- Panel Derecho: Análisis Clínico y Reencuadres -->
+    <section class="card" style="min-height: 500px;">
+      <h2>Procesador y Análisis Cognitivo</h2>
+
+      <!-- Estado Inicial -->
+      <div class="placeholder-box" id="placeholderResults">
+        <p style="font-weight: 500; color: var(--text-primary);">Esperando datos de entrada</p>
+        <p>Introduce un pensamiento en el panel izquierdo para iniciar el análisis electro-cognitivo.</p>
+      </div>
+
+      <!-- Estado de Carga -->
+      <div class="loader-box" id="loaderContainer">
+        <div class="spinner"></div>
+        <div class="loader-status" id="loaderStatus">
+          Cargando análisis...
+        </div>
+      </div>
+
+      <!-- Resultados Estructurados en 3 Tarjetas (Cuerpo, Filtro, Soluciones) -->
+      <div class="results-container" id="resultsContainer" style="display: none;">
+        
+        <div class="report-layout">
+          <!-- Tarjeta 1: CUERPO (Verde) -->
+          <div class="report-card card-cuerpo">
+            <div class="report-card-header">
+              <span class="report-card-title">Cuerpo (Diagnóstico Biométrico)</span>
+              <button class="speak-btn" id="btnSpeak">🔊 Escuchar</button>
+            </div>
+            <div class="report-card-body" id="resFisiologico">
+              --
+            </div>
+          </div>
+
+          <!-- Tarjeta 2: FILTRO MENTAL (Naranja) -->
+          <div class="report-card card-filtro">
+            <div class="report-card-header">
+              <span class="report-card-title">Filtro Mental (Sesgo Detectado)</span>
+            </div>
+            <div class="report-card-body">
+              <div style="font-weight: 600; margin-bottom: 0.75rem;" id="resSesgo">--</div>
+              <div class="report-subtitle">Proceso de Razonamiento Clínico (CoT):</div>
+              <div class="cot-flow" id="resCot">
+                <!-- Se rellena dinámicamente -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta 3: SOLUCIONES (Azul) -->
+          <div class="report-card card-soluciones">
+            <div class="report-card-header">
+              <span class="report-card-title">Soluciones (Reencuadres Racionales)</span>
+            </div>
+            <div class="report-card-body">
+              <div class="reframes-container" id="resReframeList">
+                <!-- Se rellena dinámicamente -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
