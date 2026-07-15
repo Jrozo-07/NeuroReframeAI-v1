@@ -1,16 +1,15 @@
 const genAI = require('../config/gemini');
 
 /**
- * Controlador que procesa el pensamiento negativo y los datos biométricos
- * (generados a partir del ritmo de tecleo del usuario) utilizando Gemini
- * con una estrategia CoT (Chain of Thought) unificada.
+ * Controlador unificado de reencuadre cognitivo.
+ * Recibe el pensamiento + biometría en tiempo real (ritmo de tecleo del frontend)
+ * y ejecuta un análisis CoT en un solo viaje a Gemini.
  */
 exports.reframeThought = async (req, res) => {
   try {
     const { pensamiento, biometria } = req.body;
     const { frecuencia_cardiaca, conductancia_cutanea, ondas_cerebrales } = biometria;
 
-    // Obtener modelo con salida estructurada JSON forzada
     const model = genAI.getGenerativeModel({
       model: 'gemini-3.1-flash-lite',
       generationConfig: {
@@ -24,16 +23,16 @@ exports.reframeThought = async (req, res) => {
             },
             analisis_fisiologico: {
               type: 'STRING',
-              description: 'Resumen clínico sobre el perfil psicofisiológico basándose en el ritmo cardíaco, estrés de la piel y ondas beta.'
+              description: 'Resumen clínico del perfil psicofisiológico cruzando ritmo cardíaco, conductancia cutánea y ondas beta.'
             },
             razonamiento_cot: {
               type: 'STRING',
-              description: 'Explicación del razonamiento CoT secuencial (Paso 1: Cruce Psicomotor, Paso 2: Evaluación Cognitiva, Paso 3: Coherencia de Tono, Paso 4: Propuesta de Reencuadre).'
+              description: 'Desglose secuencial del CoT en 3 pasos: (1) Cruce psicomotor, (2) Evaluación cognitiva, (3) Síntesis tono-contenido con propuesta.'
             },
             reencuadres: {
               type: 'ARRAY',
               items: { type: 'STRING' },
-              description: 'Arreglo con exactamente 3 reencuadres alternativos. Deben ser calmantes y empáticos si el pulso fue alto.'
+              description: 'Arreglo con exactamente 3 propuestas de reencuadre cognitivo. Si el pulso fue alto, deben ser marcadamente pausados y empáticos.'
             }
           },
           required: ['sesgo_detectado', 'analisis_fisiologico', 'razonamiento_cot', 'reencuadres']
@@ -42,27 +41,26 @@ exports.reframeThought = async (req, res) => {
     });
 
     const prompt = `
-Eres NeuroReframeAI, una inteligencia artificial clínica experta en psicología cognitiva y retroalimentación biológica (biofeedback).
-Analiza el pensamiento negativo del paciente cruzándolo con sus datos biométricos de tecleo (ritmo y correcciones en tiempo real).
+Eres NeuroReframeAI, IA clínica experta en psicología cognitiva y biofeedback. Ejecuta un análisis unificado en un solo viaje.
 
-Datos de Entrada del Paciente:
-- PENSAMIENTO NEGATIVO: "${pensamiento}"
-- BIOMETRÍA PSICOMOTORA:
-  * Ritmo Cardíaco: ${frecuencia_cardiaca} BPM (rango normal: 60-80, alto estrés: 95-115).
-  * Conductancia Cutánea: ${conductancia_cutanea} uS (rango normal: 2.0-5.0, alto estrés: 6.0-10.0).
-  * Actividad Ondas Beta (cerebral): ${ondas_cerebrales} (rango normal: <0.4, alto estrés: >0.6).
+DATOS DEL PACIENTE:
+- PENSAMIENTO: "${pensamiento}"
+- BIOMETRÍA (derivada del ritmo de tecleo en tiempo real):
+  * Pulso: ${frecuencia_cardiaca} BPM (normal: 60-80 · estrés: 95-115)
+  * Conductancia cutánea: ${conductancia_cutanea} µS (normal: 2-5 · estrés: 6-10)
+  * Ondas Beta: ${ondas_cerebrales} (normal: <0.4 · estrés: >0.6)
 
-Ejecuta de manera estricta una Cadena de Pensamiento (Chain of Thought - CoT) unificada en los siguientes pasos:
+CADENA DE PENSAMIENTO (CoT) ESTRICTA — ejecuta los 3 pasos en orden:
 
-- PASO 1 (Cruce Psicomotor): Evalúa si la tensión del pensamiento coincide con la tensión física enviada en las métricas BCI (generadas por el ritmo de tecleo rápido o correcciones).
-- PASO 2 (Evaluación Cognitiva): Identifica la distorsión cognitiva o sesgo del pensamiento (ej. catastrofismo, pensamiento polarizado, generalización excesiva, etc.).
-- PASO 3 (Coherencia de Tono): Analiza si las pulsaciones altas del paciente (ritmo cardíaco >= 90 BPM) sugieren ansiedad o tensión biológica activa. Si es así, adapta el tono de tus reencuadres en el Paso 4 para que sean marcadamente más pausados, empáticos, reconfortantes y orientados a mitigar la ansiedad física (ej. frases cortas, técnicas de respiración lógica, tono compasivo). Si el pulso es bajo o normal, redacta reencuadres directos y lógicos.
-- PASO 4 (Propuesta de Reencuadre): Redacta exactamente 3 propuestas de reencuadre cognitivo estructuradas bajo el tono correspondiente.
+PASO 1 — CRUCE PSICOMOTOR: Evalúa si la carga semántica del pensamiento coincide con la activación fisiológica enviada (pulso alto + tecleo rápido = tensión activa; pulso normal = elaboración pausada). Conecta explícitamente el ritmo de escritura con la emoción subyacente.
 
-Genera tu respuesta únicamente bajo el formato JSON estructurado solicitado. El campo "razonamiento_cot" debe contener el desglose secuencial del razonamiento realizado en los pasos 1, 2, 3 y 4.
+PASO 2 — EVALUACIÓN COGNITIVA: Identifica el sesgo o distorsión dominante (catastrofismo, polarización, generalización excesiva, lectura mental, minimización positiva, etc.) justificándolo con fragmentos del texto.
+
+PASO 3 — SÍNTESIS TONO-CONTENIDO Y PROPUESTA: Si el PASO 1 concluyó que el pulso es alto (≥ 90 BPM), redacta los 3 reencuadres con tono marcadamente pausado, empático y orientado a mitigar la ansiedad física del paciente (frases cortas, validación emocional, sugerencias de respiración o grounding). Si el pulso es normal o bajo, redacta reencuadres directos, lógicos y orientados a la acción. Cada reencuadre debe ser una alternativa concreta y utilizable.
+
+FORMATO DE SALIDA: responde únicamente con el JSON estructurado solicitado. En "razonamiento_cot" incluye el desglose explícito de los 3 pasos.
 `;
 
-    // Consulta a la API de Gemini
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
@@ -79,7 +77,7 @@ Genera tu respuesta únicamente bajo el formato JSON estructurado solicitado. El
 
     return res.status(200).json(jsonResult);
   } catch (error) {
-    console.error('Error en el controlador reframeController:', error);
+    console.error('Error en reframeController:', error);
     return res.status(500).json({
       error: 'Error interno del servidor al procesar el reencuadre cognitivo.',
       details: error.message

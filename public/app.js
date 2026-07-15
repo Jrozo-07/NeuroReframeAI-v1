@@ -1,25 +1,12 @@
-// Variables de estado del Simulador BCI (Valores iniciales base)
-let currentBpm = 72;
-let currentConductancia = 4.2;
-let currentBeta = 0.35;
-let stressIndex = 0.35;
+// =====================================================================
+// APP.JS — Osciloscopio · Validación · Carga · Voz · Formulario · Reporte
+// Las variables globales currentBpm, currentConductancia, currentBeta y
+// stressIndex se definen en el <script> inline de index.html (detector
+// de ritmo de escritura en tiempo real).
+// =====================================================================
 
-// Variables de monitoreo de escritura en tiempo real
-let keystrokes = [];
-let backspaces = [];
-
-// Elementos de la UI
-const valBpm = document.getElementById('valBpm');
-const valConductancia = document.getElementById('valConductancia');
-const valBeta = document.getElementById('valBeta');
-const stressBar = document.getElementById('stressBar');
-const stressPercentage = document.getElementById('stressPercentage');
-const heartVisual = document.getElementById('heartVisual');
-
-const valWpm = document.getElementById('valWpm');
-const valBackspace = document.getElementById('valBackspace');
-
-const thoughtInput = document.getElementById('thoughtInput');
+// Elementos de UI reutilizados desde index.html
+// thoughtInput ya está declarado en el <script> inline de index.html
 const charCount = document.getElementById('charCount');
 const charError = document.getElementById('charError');
 const reframeForm = document.getElementById('reframeForm');
@@ -35,96 +22,6 @@ const resFisiologico = document.getElementById('resFisiologico');
 const resCot = document.getElementById('resCot');
 const resReframeList = document.getElementById('resReframeList');
 const btnSpeak = document.getElementById('btnSpeak');
-
-// --- 1. CAPTURA Y ANÁLISIS DEL RITMO DE ESCRITURA ---
-// Evento keydown en el textarea para monitorear pulsaciones y teclas de retroceso (Backspace)
-thoughtInput.addEventListener('keydown', (e) => {
-  const now = Date.now();
-  keystrokes.push(now);
-  
-  if (e.key === 'Backspace') {
-    backspaces.push(now);
-  }
-});
-
-// Función periódica que procesa la velocidad de escritura y calcula métricas biológicas
-function updateBiometricsFromTyping() {
-  const now = Date.now();
-  
-  // Filtrar eventos de los últimos 5 segundos (ventana deslizante)
-  keystrokes = keystrokes.filter(t => now - t < 5000);
-  backspaces = backspaces.filter(t => now - t < 5000);
-  
-  // Calcular WPM instantáneo (cada 5 caracteres equivalen a 1 palabra promedio)
-  // WPM = (pulsaciones en 5s / 5) * 12
-  const wpm = Math.round((keystrokes.length / 5) * 12);
-  const backspaceCount = backspaces.length;
-  
-  // Mostrar métricas de escritura en la UI
-  if (valWpm) valWpm.innerText = wpm;
-  if (valBackspace) valBackspace.innerText = backspaceCount;
-
-  let targetBpm, targetConductancia, targetBeta;
-  
-  // LOGICA DE TRADUCCIÓN: Ritmo de escritura -> Biometría
-  // 1. Escritura rápida (>80 WPM) o correcciones constantes (más de 2 retrocesos recientes)
-  if (wpm > 80 || backspaceCount > 2) {
-    targetBpm = 95 + Math.random() * 20; // Rango 95-115 BPM
-    targetConductancia = 6.0 + Math.random() * 4.0; // Rango 6-10 uS
-    targetBeta = 0.65 + Math.random() * 0.25; // Alta agitación cerebral
-  }
-  // 2. Escritura pausada, rítmica y tranquila (entre 10 y 80 WPM)
-  else if (wpm >= 10 && wpm <= 80) {
-    targetBpm = 70 + Math.random() * 10; // Rango 70-80 BPM
-    targetConductancia = 3.0 + Math.random() * 1.5; // Rango 3.0-4.5 uS
-    targetBeta = 0.25 + Math.random() * 0.15; // Concentración relajada
-  }
-  // 3. Detenido o sin actividad de escritura
-  else {
-    targetBpm = 62 + Math.random() * 6; // Retorno suave a reposo (62-68 BPM)
-    targetConductancia = 2.0 + Math.random() * 0.5; // Retorno a 2.0-2.5 uS
-    targetBeta = 0.10 + Math.random() * 0.10; // Relajación basal
-  }
-
-  // Interpolación suave (amortiguación) para evitar saltos drásticos en la interfaz visual
-  currentBpm = Math.round(currentBpm * 0.75 + targetBpm * 0.25);
-  currentConductancia = parseFloat((currentConductancia * 0.75 + targetConductancia * 0.25).toFixed(2));
-  currentBeta = parseFloat((currentBeta * 0.75 + targetBeta * 0.25).toFixed(2));
-
-  // Normalización para barra de índice de tensión somática
-  const bpmNorm = Math.max(0, Math.min(1, (currentBpm - 60) / 50));
-  const condNorm = Math.max(0, Math.min(1, (currentConductancia - 2) / 8));
-  const betaNorm = Math.max(0, Math.min(1, (currentBeta - 0.1) / 0.8));
-  stressIndex = (bpmNorm * 0.4) + (condNorm * 0.3) + (betaNorm * 0.3);
-  const stressPercent = Math.round(stressIndex * 100);
-
-  // Actualizar UI
-  valBpm.innerText = currentBpm;
-  valConductancia.innerText = currentConductancia.toFixed(1);
-  valBeta.innerText = currentBeta.toFixed(2);
-  
-  stressBar.style.width = `${stressPercent}%`;
-  stressPercentage.innerText = `${stressPercent}%`;
-
-  // Control dinámico de la velocidad de latido del corazón visual
-  if (heartVisual) {
-    const animationDurationSeconds = 60 / currentBpm;
-    heartVisual.style.animationDuration = `${animationDurationSeconds}s`;
-  }
-
-  // Color de barra de estrés
-  if (stressPercent < 45) {
-    stressBar.style.backgroundColor = '#10b981';
-  } else if (stressPercent < 75) {
-    stressBar.style.backgroundColor = '#f59e0b';
-  } else {
-    stressBar.style.backgroundColor = '#ef4444';
-  }
-}
-
-// Ejecutar análisis de ritmo de escritura cada 1 segundo (reemplaza el simulador periódico anterior)
-setInterval(updateBiometricsFromTyping, 1000);
-updateBiometricsFromTyping();
 
 
 // --- 2. GRAFICADOR CLÍNICO (MONITOR OSCILOSCOPIO) ---
@@ -398,31 +295,29 @@ function renderClinicalReport(data) {
  */
 function parseCot(text) {
   const steps = [];
-  const regex = /(Paso\s+[1-4]|PASO\s+[1-4])[:\-\s]*(.*?)(?=(?:Paso\s+[1-4]|PASO\s+[1-4])|$)/gsi;
+  const regex = /(Paso\s+[1-3]|PASO\s+[1-3])[:\-\s]*(.*?)(?=(?:Paso\s+[1-3]|PASO\s+[1-3])|$)/gsi;
   let match;
 
   while ((match = regex.exec(text)) !== null) {
     let title = match[1].toUpperCase();
     let content = match[2].trim();
     
-    if (title.includes('1')) title = 'Paso 1: Diagnóstico Somático';
+    if (title.includes('1')) title = 'Paso 1: Cruce Psicomotor';
     if (title.includes('2')) title = 'Paso 2: Evaluación Cognitiva';
-    if (title.includes('3')) title = 'Paso 3: Análisis de Coherencia Somático-Mental';
-    if (title.includes('4')) title = 'Paso 4: Propuesta de Reencuadre';
+    if (title.includes('3')) title = 'Paso 3: Síntesis Tono-Contenido';
 
     steps.push({ title, content });
   }
 
   if (steps.length === 0) {
     const lines = text.split('\n').filter(l => l.trim().length > 10);
-    if (lines.length >= 4) {
+    if (lines.length >= 3) {
       const fallbackTitles = [
-        'Análisis de Telemetría Basal',
-        'Evaluación de Distorsiones Cognitivas',
-        'Cruce Somato-Cognitivo',
-        'Alternativas de Reencuadre Racional'
+        'Cruce Psicomotor',
+        'Evaluación Cognitiva',
+        'Síntesis Tono-Contenido'
       ];
-      for (let i = 0; i < Math.min(4, lines.length); i++) {
+      for (let i = 0; i < Math.min(3, lines.length); i++) {
         steps.push({
           title: fallbackTitles[i],
           content: lines[i].trim()

@@ -169,6 +169,121 @@
     </section>
   </main>
 
+  <script>
+    // =====================================================================
+    // DETECTOR DE RITMO DE ESCRITURA EN TIEMPO REAL (Biometría Viviente)
+    // =====================================================================
+    // Estado global de biometría — consumido por app.js (osciloscopio, envío API)
+    let currentBpm = 72;
+    let currentConductancia = 4.2;
+    let currentBeta = 0.35;
+    let stressIndex = 0.35;
+
+    // Captura de pulsaciones y retrocesos
+    const keystrokes = [];
+    const backspaces = [];
+    let tickCount = 0; // oscilador determinista sin Math.random
+
+    // Referencias a la UI
+    const thoughtInput = document.getElementById('thoughtInput');
+    const valWpm = document.getElementById('valWpm');
+    const valBackspace = document.getElementById('valBackspace');
+    const valBpm = document.getElementById('valBpm');
+    const valConductancia = document.getElementById('valConductancia');
+    const valBeta = document.getElementById('valBeta');
+    const stressBar = document.getElementById('stressBar');
+    const stressPercentage = document.getElementById('stressPercentage');
+    const heartVisual = document.getElementById('heartVisual');
+
+    // Listener de teclado en el textarea — captura cada pulsación en vivo
+    thoughtInput.addEventListener('keydown', (e) => {
+      const now = Date.now();
+      keystrokes.push(now);
+      if (e.key === 'Backspace') {
+        backspaces.push(now);
+      }
+    });
+
+    // Función periódica: traduce ritmo de escritura → biometría viva
+    function updateBiometricsFromTyping() {
+      const now = Date.now();
+      tickCount++;
+
+      // Ventana deslizante de 5 segundos
+      const windowMs = 5000;
+      while (keystrokes.length && now - keystrokes[0] > windowMs) keystrokes.shift();
+      while (backspaces.length && now - backspaces[0] > windowMs) backspaces.shift();
+
+      // Cálculo de WPM: (pulsaciones en 5 s / 5) × 12
+      const wpm = Math.round((keystrokes.length / 5) * 12);
+      const backspaceCount = backspaces.length;
+
+      // Mostrar métricas de escritura
+      if (valWpm) valWpm.textContent = wpm;
+      if (valBackspace) valBackspace.textContent = backspaceCount;
+
+      // Pequeña oscilación determinista para evitar valores estáticos
+      const osc = Math.sin(tickCount * 0.3) * 0.5; // rango ≈ -0.5 … +0.5
+
+      let targetBpm, targetConductancia, targetBeta;
+
+      // --- TRADUCCIÓN RÍTMICO → FISIOLÓGICO ---
+      if (wpm > 80 || backspaceCount > 2) {
+        // Escritura rápida o correcciones compulsivas → estrés alto
+        targetBpm = 105 + osc;                       // rango ~95-115 BPM
+        targetConductancia = 8.0 + osc * 0.4;        // rango ~6-10 µS
+        targetBeta = 0.75 + osc * 0.05;              // alta agitación cerebral
+      } else if (wpm >= 10 && wpm <= 80) {
+        // Escritura pausada y rítmica → calma
+        targetBpm = 75 + osc;                        // rango 70-80 BPM
+        targetConductancia = 3.5 + osc * 0.3;        // rango 3.0-4.5 µS
+        targetBeta = 0.30 + osc * 0.05;              // concentración relajada
+      } else {
+        // Sin actividad → reposo
+        const decay = Math.max(0, 1 - (now - (keystrokes.length ? keystrokes[keystrokes.length - 1] : now)) / 8000);
+        targetBpm = 65 + decay * 5 + osc * 0.3;     // retorno suave a ~65 BPM
+        targetConductancia = 2.2 + decay * 0.8 + osc * 0.1;
+        targetBeta = 0.15 + decay * 0.1 + osc * 0.02;
+      }
+
+      // Interpolación suave (amortiguación 75/25)
+      currentBpm = Math.round(currentBpm * 0.75 + targetBpm * 0.25);
+      currentConductancia = parseFloat((currentConductancia * 0.75 + targetConductancia * 0.25).toFixed(2));
+      currentBeta = parseFloat((currentBeta * 0.75 + targetBeta * 0.25).toFixed(2));
+
+      // Índice de tensión somática normalizado
+      const bpmNorm   = Math.max(0, Math.min(1, (currentBpm - 60) / 50));
+      const condNorm  = Math.max(0, Math.min(1, (currentConductancia - 2) / 8));
+      const betaNorm  = Math.max(0, Math.min(1, (currentBeta - 0.1) / 0.8));
+      stressIndex = (bpmNorm * 0.4) + (condNorm * 0.3) + (betaNorm * 0.3);
+      const stressPercent = Math.round(stressIndex * 100);
+
+      // Actualizar UI de telemetría
+      valBpm.textContent = currentBpm;
+      valConductancia.textContent = currentConductancia.toFixed(1);
+      valBeta.textContent = currentBeta.toFixed(2);
+      stressBar.style.width = stressPercent + '%';
+      stressPercentage.textContent = stressPercent + '%';
+
+      // Ritmo del latido del corazón: animationDuration = 60 / BPM
+      if (heartVisual) {
+        heartVisual.style.animationDuration = (60 / currentBpm) + 's';
+      }
+
+      // Color de la barra de estrés
+      if (stressPercent < 45) {
+        stressBar.style.backgroundColor = '#10b981';
+      } else if (stressPercent < 75) {
+        stressBar.style.backgroundColor = '#f59e0b';
+      } else {
+        stressBar.style.backgroundColor = '#ef4444';
+      }
+    }
+
+    // Actualizar cada segundo
+    setInterval(updateBiometricsFromTyping, 1000);
+    updateBiometricsFromTyping();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
